@@ -1,0 +1,1 @@
+1. 每个App进程都会和WMS建立一个IWindowSession会话。这个会话被App进程用于和WMS通信。

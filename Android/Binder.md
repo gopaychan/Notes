@@ -1,0 +1,8 @@
+1. framework的binder service manager在/framework/native/cmds/servicemanager/service_manager.c里面
+2. Service服务打开binder之后就会调用IPCThreadState的joinThreadPool方法，这个方法会调用getAndExecuteCommand->talkWithDriver之后陷入沉睡，当获取的command的时候才会调用executeCommand方法对相应的cmd做出反应，如果cmd是BR_TRANSACTION，这个时候就会调用BBinder的transact方法，接着调用onTransact方法把接收到的丢给对应的Binder处理（通向native的Binder是BBinder，而通向java层的JavaBBinder 多态)。
+    1. JavaBBinder的onTransact方法会调用Binder.java的execTransact方法，实现Binder操作从native层传到java层。接着就是调用Java层的onTransact方法。
+    2. ...
+3. client通过serviceManager拿到的Bp，本质上只是拿到了保存在自己进程内核内存的服务端对应的ref handle（如serviceManager固定是0），而其BpIInterface的相关方法最终也只是封装了数据，并传给ref handle对应的node
+4. binder transaction默认的第一个code IBinder::FIRST_CALL_TRANSACTION
+5. open("/dev/binder", O_RDWR | O_CLOEXEC)，通过系统调用（syscall）最终是调用到binder.c文件binder驱动里面的binder_open方法
+6. binder_init方法是在linux里面的回调device_initcall调用的

@@ -1,0 +1,2 @@
+##### 以震动服务（vibrator）为例
+1. 像震动服务的注册：调用IVibrator的registerAsService(serviceName = "default")，向ServiceManager注册服务，为什么不同服务可以用同一个serviceName？因为ServiceManager（system/hwservicemanager/）的add方法里面会调用IVibrator的interfaceChain方法获取descriptor链，在ServiceManager里面有一个mServiceMap保存descriptor和对应的PackageInterfaceMap对象，PackageInterfaceMap是保存这serviceName和对应的service的一个map，这样的效果就是ServiceManager里面可以保存同一个service（相同的descriptor）的不同instance，只要instance名不同就可以了。
