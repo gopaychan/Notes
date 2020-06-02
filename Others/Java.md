@@ -25,6 +25,34 @@
             return env;
         }
         ```
+    5. 注册方法
+        ```
+        static const JNINativeMethod gMethods[] = {
+            { "class_init_native","()V", (void *)jni_class_init_native },
+            { "native_input_pen_init","()Z", (void *)jni_input_pen_init },
+            { "native_input_pen_exit","()V", (void *)jni_input_pen_exit },
+        };
+
+        static int registerMethods(JNIEnv* env) {
+            const char* const kClassName = CLASS_NAME;
+            jclass clazz;
+            /* look up the class */
+            clazz = env->FindClass(kClassName);
+            if (clazz == NULL) {
+                LOGE("Can't find class %s/n", kClassName);
+                return -1;
+            }
+            /* register all the methods */
+            if (env->RegisterNatives(clazz,gMethods,sizeof(gMethods)/sizeof(gMethods[0])) != JNI_OK) {
+                LOGE("Failed registering methods for %s/n", kClassName);
+                return -1;
+            }
+            /* fill out the rest of the ID cache */
+            return 0;
+        }
+
+        jniRegisterNativeMethods方法也是走了上面的流程。
+        ```
 
 2. enum
     1. Java 中的每一个枚举都继承自 java.lang.Enum 类。当定义一个枚举类型时，每一个枚举类型成员都可以看作是 Enum 类的实例，这些枚举成员默认都被 final、public, static 修饰，当使用枚举类型成员时，直接使用枚举名称调用成员即可。
