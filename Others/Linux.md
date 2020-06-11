@@ -1,0 +1,1 @@
+1. 内核内存是进程共享的，所有应用程序进程公用同一份内核内存。[参考](https://blog.csdn.net/f22jay/article/details/7925531)

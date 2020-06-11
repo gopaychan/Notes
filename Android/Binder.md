@@ -26,8 +26,21 @@
     static int binder_mmap(struct file *filp, struct vm_area_struct *vma)
     {
         ...
+        if (vma->vm_flags & FORBIDDEN_MMAP_FLAGS) {
+		    ret = -EPERM;
+		    failure_string = "bad vm_flags";
+		    goto err_bad_arg;
+	    }
+        vma->vm_flags |= VM_DONTCOPY | VM_MIXEDMAP;
+	    vma->vm_flags &= ~VM_MAYWRITE;
+        ...
         struct vm_struct *area;
         ...
     }
     ```
-    1. 
+    > 1. ![](../MdPicture/23.png)
+    > 2. Binder驱动为进程分配的内核缓冲去在用户空间只可以读，不可以写，因此如果进程指定要映射的用户地址空间可写（vma->vm_flags & FORBIDDEN_MMAP_FLAGS）则错误。内核缓冲在用户空间除了不可以写之外，也是不可以拷贝以及禁止设置可能会执行写操作标志为的，因此下面两行|=和&=。
+    > 3. <table><tr><td bgcolor=white><img src="../MdPicture/25.png"/></td></tr></table>
+14. BWR核心数据图表
+![](../MdPicture/24.jpg)
+15. BBinder是派生自RefBase类的，他在用户空间创建并运行在service进程中。service进程中的其他对象可以简单的通过智能指针来引用这些BBinder来控制他们的声明周期，Binder驱动中的Binder实体对象是运行在内核空间中的，没法通过智能指针...，故Binder驱动需要跟service进程约定一套规则来维护他们的引用计数。（BR_DECREFS,BR_RELEASE,BR_INCREFS,BR_ACQUIRE）

@@ -209,7 +209,7 @@
             2. 调用getDeviceForStrategy方法
             3. 调用getOutputForDevice方法 
                 1. mOutputs数据的由来：AudioPolicyManager的构造方法会调用loadConfig方法加载audio_policy.conf（[参考，Android7以后用Xml-audio_policy_configuration.xml文件代替该配置仍然适用](https://source.android.google.cn/devices/audio/implement-policy?hl=zh-cn) audio-base.h里面有flags的含义）的配置，接着会调用initialize方法，遍历加载到的mHwModulesAll得到每一个hwModule，通过hwModule->getOutputProfiles并遍历其返回值得到outProfile，并新建SwAudioOutputDescriptor对象outputDesc并调用其open方法得到output，最后调用addOutput方法把output和outputDesc以键值对的形式保存起来。
-                    1. 以高通660的audio_policy.conf为例，mHwModulesAll包括三个primary，a2dp，usb，r_submix；primary的outputProfiles包括primary，raw，deep_buffer，compress_passthrough，direct_pcm，compress_offload，dsd_compress_passthrough，incall_music，voip_rx；每个outputProfile几乎包括sampling_rates，channel_masks，formats，devices，flags。
+                    1. 以高通660的audio_policy.conf（新版本用audio_policy_configuration.xml）为例，mHwModulesAll包括三个primary，a2dp，usb，r_submix；primary的outputProfiles包括primary，raw，deep_buffer，compress_passthrough，direct_pcm，compress_offload，dsd_compress_passthrough，incall_music，voip_rx；每个outputProfile几乎包括sampling_rates，channel_masks，formats，devices，flags。
                     2. SwAudioOutputDescriptor的open方法最后调用到了AF的openOutput方法，接着调用openOutput_l方法，该方法里面通过module跟devices在mAudioHwDevs找到AudioHwDevice对象，调用其openOutputStream方法得到outputStream；根据flag新建对应的PlaybackThread（新建的时候会调用Thread的run方法，进入threadLoop的循环，这个时候mStandbyTimeNs为当前时间，且mActiveTracks里面是没有Track的，所以Thread会进入待机状态```mWaitWorkCV.wait(mLock)```）传入openOutputStream保存在没mPlaybackThreads里面以output，thread为键值对保存。
             4. 根据device更新mSelectedDeviceId。
             5. 常见 FLAG
@@ -285,7 +285,7 @@ Playback mode in which a large-sized buffer is sent to the aDSP and the APSS goe
         > mFrameCount跟mNormalFrameCount都是在readOutputParameters_l方法里面赋值的，mFrameCount为传进来的mOutput（AudioStreamOut）对象对应的流的mBufferSize/mFrameSize，mNormalFrameCount为mFrameCount乘与一个倍数，跟FastMixer有关。
     2. 如果是FastMixer，则mNormalSink为mPipeSink（```new MonoPipe(mNormalFrameCount * 4, format, true /*writeCanBlock*/)```），否则为mOutputSink。
     3. prepareTracks_l，如果是FastTrack的话配置AudioMixer是在FastMixer的onStateChange里面完成的，prepareTracks_l里面只是把应有的参数push到sq()里面；否则才在prepareTracks_l方法里面进行普通Track的AudioMixer配置。mActiveTracks里面不同的Track会做不同的处理，但是一般一个Thread里面只有一个Track是Active的，所以大多数情况下FastTrack跟普通的Track只进行一个，所以可能普通的(PlaybackThread的)threadLoop_write都不会走，因为thread没有mix出来的数据（mBytesRemaining等于0）。
-11. hidl层（TODO）
+11. hidl层（#TODO）
 12. video的渲染
     1. onReleaseOutputBuffer方法里面会调用SoftRenderer的render方法，进行video的渲染。
 

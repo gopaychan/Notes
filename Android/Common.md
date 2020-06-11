@@ -60,11 +60,3 @@
 8. socket:listen()会进入LISTEN状态；accept()如果client端调用connect的话，server端调用accept会得到一个client的socket，通过这个client的socket可以跟client通信（write，read）。
 
 9. stdin,stdout,stderr这3个fp，是随着bin的开启默认打开的，其中0就是stdin，表示输入流，1代表stdout，2代表stderr（IptablesRestoreController里面用到）
-
-
-
-
-settings put global DlnaPlayUrl "http://192.168.43.140:1678/%/sdcard/3月26日周四《梅花魂 》.mp4"
-
-settings put global DlnaPlayUrl "http://192.168.43.140:1442/%25/sdcard/123.mp4"
-
