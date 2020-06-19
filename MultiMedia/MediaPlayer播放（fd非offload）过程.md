@@ -79,11 +79,11 @@
         1. 配置一些format信息
         2. PostAndAwaitResponse what=kWhatConfigure的message（需要异步的一些configure操作）
         3. what=kWhatConfigure的message最后会调用MediaCodec的mCodec（的ACodec）的initiateConfigureComponent方法做最后的配置（见9）
-    4. 调用mCodec（MediaCodec）的setCallback方法，MediaCodec中如果callback不为NULL设置mFlags |= kFlagIsAsync。
-    5. 调用mCodec（MediaCodec）的start方法
+    4. <span id="jump1">调用mCodec（MediaCodec）的setCallback方法，MediaCodec中如果callback不为NULL设置mFlags |= kFlagIsAsync。
+    5. 调用mCodec（MediaCodec）的start方法</span>
         1. 通过kWhatStart异步调用
             1. 设置状态为STARTING
-            2. 调用mCodec（ACodec）的initiateStart方法实际调用到onStart方法，里面调用到mOMXNode的```sendCommand(OMX_CommandStateSet, OMX_StateIdle)```方法，返回值OK的话把状态机的状态变成LoadedToIdleState（见10）。
+            2. <span id="jump">调用mCodec（ACodec）的initiateStart方法实际调用到onStart方法，里面调用到mOMXNode的```sendCommand(OMX_CommandStateSet, OMX_StateIdle)```方法，返回值OK的话把状态机的状态变成LoadedToIdleState（见10）。</span>
 9. ACodec的onAllocateComponent方法
     1. 新建CodecObserver对象地址保存在observer
     2. 新建OMXClient对象并调用connect方法获取对应service(<font color=##1E90FF>OMX</font>)，并包装成LWOmx对象omx
@@ -96,7 +96,7 @@
         1. 如果handle不为NULL，OMXNodeInstance会新建CallbackDispatcher（回调分配器），然后新建线程进入run起来后调用dispatcher的loop方法（自己搞了一个消息分配系统）。
     8. 保存instance和observer（```new TWOmxObserver(observer)```）对象到mLiveNodes，吗NodeObserver。
     9. 把instance封装成TWOmxNode返回。
-    10. ACodec中保存componentName(```mRenderTracker.setComponentName(componentName)```)，omx(mOMX)，omxNode（mOMXNode,```new TWOmxNode(instance)```可IPC），回调MediaCodec的onComponentAllocated方法（kWhatComponentAllocated 如果```(mComponentName.startsWith("OMX.google.") && (owner == nullptr || strncmp(owner, "default", 8) == 0))```则设置```mFlags |= kFlagUsesSoftwareRenderer```），把状态机的状态变成LoadedState
+    10. ACodec中保存componentName(```mRenderTracker.setComponentName(componentName)```)，omx(mOMX)，omxNode（mOMXNode,```new TWOmxNode(instance)```可IPC），回调MediaCodec的onComponentAllocated方法（kWhatComponentAllocated 如果```(mComponentName.startsWith("OMX.google.") && (owner == nullptr || strncmp(owner, "default", 8) == 0))```则设置```mFlags |= kFlagUsesSoftwareRenderer```），<span id="jump2">把状态机的状态变成LoadedState</span>
     > 补充:ACodec里面使用了状态机的机制有UninitializedState，LoadedState，LoadedToIdleState，IdleToExecutingState，ExecutingState，OutputPortSettingsChangedState，ExecutingToIdleState，IdleToLoadedState，FlushingState九种状态，初始化的最后会changeState到UninitializedState状态。Acodec派生于状态机控制类AHierarchicalStateMachine和消息控制类AHandler，ACodec重写了AHandler的onMessageReceived方法调用AHierarchicalStateMachine的handleMessage方法，该方法里面会根据当前的状态调用对应状态的onMessageReceived方法。
     11. OMX类图![](../MdPicture/3.png)
 10. ACodec的initiateConfigureComponent会异步调用到其onConfigureComponent方法。
@@ -120,7 +120,7 @@
         5. 把新建ACodec::BufferInfo对象info，```info.mStatus = BufferInfo::OWNED_BY_US```，bufferId保存在info.mBufferID里面，新建SharedMemoryBuffer（MediaCodecBuffer的派生类）对象保存在info.mCodecData里面，hidlMem保存在info.mCodecRef里面（实现ACodec端跟OMX端的OMXNodeInstance共享内存），```info.mData = info.mCodecData```，最后```mBuffers[portIndex].push(info);```
         6. 遍历mBuffers生成array：```std::vector<ACodecBufferChannel::BufferAndId> array(mBuffers[portIndex].size())；array[i] = {mBuffers[portIndex][i].mData, mBuffers[portIndex][i].mBufferID};```
         7. 回调mBufferChannel的setInputBufferArray或setOutputBufferArray方法。把上面新建的buffer和对应的bufferId，保存在ACodecBufferChannel的<font color=#7FFFAA>mInputBuffers（ACodecBufferChannel::BufferInfo）</font>或mOutputBuffers里面。
-12. 5.8.5.2中setCommand把OMX状态设置成OMX_StateIdle之后成功会回调LoadedToIdleState::onOMXEvent（event为OMX_EventComComplete），回调里面还会调用setCommand吧OMX状态设置成OMX_StateExecting，返回值OK的话设置ACodec状态机为IdleToExecutingState状态。
+12. [5.8.5.2](#jump)中setCommand把OMX状态设置成OMX_StateIdle之后成功会回调LoadedToIdleState::onOMXEvent（event为OMX_EventComComplete），回调里面还会调用setCommand吧OMX状态设置成OMX_StateExecting，返回值OK的话设置ACodec状态机为IdleToExecutingState状态。
 13. setCommand成功后，会先调用ExecutingState的resume方法<!-- ->submitOutputBuffers->submitOutputMetadataBuffer->fillBuffer-> -->遍历mBuffers对应端口的数据，如果info的mStatus为OWNED_BY_US的话，调用<font color="#00CED1">postFillThisBuffer</font>方法传入info。最后同上会调用IdleToExecutingState::onOMXEvent把ACodec状态机设置成ExecutingState。
 <!-- 14. <font color="#FA8072">fillBuffer</font>方法会调用OMXNodeInstance的fillBuffer方法，接着调用OMX_FillThisBuffer方法传入空buffer给OMX保存解码后的数据。-->
 15. <font color="#00CED1">postFillThisBuffer</font>传入info，接着调用mBufferChannel的fillThisBuffer方法，最后把info的mStatus改为BufferInfo::OWNED_BY_UPSTREAM
@@ -196,8 +196,8 @@
 
 ##### 8.Renderer过程
 1. MediaCodec里面的kWhatDrainThisBuffer case会判断```mOutputFormat != buffer->format()```一般第一个buffer过来的时候会初始化mOutputFormat，在此之前mOutputFormat==NULL。
-    1. 因为5.8.4中如果把flag设置成async，就会调用onOutputFormatChanged方法，最终会调用到NuPlayerRenderer的changeAudioFormat方法，最后的最后调用onOpenAudioSink方法打开mAudioSink（AudioOutput）
-    2. 因为5.9.10中如果把flag设置成soft，且mime是以“video/”开始时，就会初始化mSoftRenderer（SoftwareRenderer）
+    1. 因为[5.8.4](#jump1)中如果把flag设置成async，就会调用onOutputFormatChanged方法，最终会调用到NuPlayerRenderer的changeAudioFormat方法，最后的最后调用onOpenAudioSink方法打开mAudioSink（AudioOutput）
+    2. 因为[5.9.10](#jump2)中如果把flag设置成soft，且mime是以“video/”开始时，就会初始化mSoftRenderer（SoftwareRenderer）
 2. onOpenAudioSink会调用到MediaPlayerService里面的AudioOutput::open方法。
 3. open方法里面会新建AudioTrack对象t并保存在mTrack里面（[参考](https://www.cnblogs.com/TaigaCon/p/4772066.html)）
     1. AudioTrack的构造方法里面会调用set方法，set方法又会调用到createTrack_l方法

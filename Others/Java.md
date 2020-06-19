@@ -57,4 +57,11 @@
 2. enum
     1. Java 中的每一个枚举都继承自 java.lang.Enum 类。当定义一个枚举类型时，每一个枚举类型成员都可以看作是 Enum 类的实例，这些枚举成员默认都被 final、public, static 修饰，当使用枚举类型成员时，直接使用枚举名称调用成员即可。
 
+3. <span id="ThreadLocal">ThreadLocal</span>
+    - new ThreadLocal().set，get 是在new ThreadLocal的Thread里面保存或者获取value，以new ThreadLocal为key
+    - android的Looper里面用一个静态变量sThreadLocal来set，get value，是在对应的Thread保存Looper，key为sThreadLocal，由于是静态的ThreadLocal，故不同的Thread里面，Looper对应的key是一样的。
+    - InheritableThreadLocal 可以实现多个线程访问ThreadLocal
+        >  因为其重写了createMap和getMap，都在Thread的另一个属性里面create和get（inheritableThreadLocals，正常是在threadLocals）。
+        > 子线程在创建的时候会拷贝父类的inheritableThreadLocals。
+
 3. 找机会阅读java编程思想，java虚拟机，Linux相关的东西
