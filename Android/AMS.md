@@ -18,7 +18,9 @@
 15. IActivityManager.attachApplication
 16. ActivityStackSupervisor.attachApplicationLocked 准备启动应用，先查找MainActivity
 17. ActivityStackSupervisor.realStartActivityLocked IPC通知ActivityThread
-18. ActivityThread.scheduleLaunchAcitivy
+18. ActivityThread.handleLaunchActivity
+19. ActivityThread.performLaunchActivity
+    > 里面会调用LoadedApk（r.packageInfo）的makeApplication方法加载系统资源。
 19. Instrumentation.newActivity
 20. activity.attach
 21. Instrumentation.callActivityOnCreate
@@ -149,7 +151,8 @@
 ##### 7. 其他
 1. ActivityRecord.Token
     1. ActivityRecord的构造方法里面会新建ActivityRecord.Token并把this保存在里面。token会传递到client端并保存在ActivityClientRecord里面，token主要是来标注client端的ActivityClientRecord和server端的ActivityRecord，像调用activityPaused方法的时候就需要传入token，这样在server端就可以找到对应的ActivityRecord。
-    2. <span id="createWindowContainer">ActivityStack的</span>startActivityLocked方法里面会调用ActivityRecord的createWindowContainer方法，这个方法会new一个AppWindowContainerController对象mWindowContainerController，AppWindowContainerController的构造方法会调用createAppWindow方法新建一个AppWindowToken对象，其父类的构造方法最终会调用到DisplayContent（每个DisplayId都会有一个对应的DisplayContent保存在RootWindowContainer里面，RootWindowContainer是WindowManagerService的一个对象mRoot，在其构造方法里初始化）的addWindowToken方法保存token（ActivityRecord.Token）和对应的AppWindowToken对象。也会调用TaskWindowContainerController.mContainer.addChild(atoken（AppWindowToken）, index（add on the top）)。
+        > 通过这个token可以将service和client的ActivityRecord和ActivityClientRecord对应起来。因为只用token来标识Activity，client端和service端的Activity可以通过Hook使其不是同一个，这可以用来做插件化。
+    2. <span id="createWindowContainer">ActivityStack的</span>startActivityLocked方法里面会调用ActivityRecord的createWindowContainer方法，这个方法会new一个AppWindowContainerController对象mWindowContainerController，AppWindowContainerController的构造方法会调用createAppWindow方法新建一个AppWindowToken对象，其父类的构造方法最终会调用到DisplayContent（每个DisplayId都会有一个对应的DisplayContent保存在RootWindowContainer里面，一个DisplayContent代表一块屏幕，屏幕可以是手机自身的屏幕，也可以是WifiDisplay的虚拟屏幕。RootWindowContainer是WindowManagerService的一个对象mRoot，在其构造方法里初始化）的addWindowToken方法保存token（ActivityRecord.Token）和对应的AppWindowToken对象。也会调用TaskWindowContainerController.mContainer.addChild(atoken（AppWindowToken）, index（add on the top）)。
     3. ActivityThread的performLaunchActivity方法里面调用Activity的Attach方法的时候会把ActivityClientRecord的token传进去保存在Activity的mToken里面。
         1. attach里面新建window（PhoneWindow）之后会调用其setWindowManager方法传入mToken保存在Window的mAppToken里面，并调用WindowManagerImpl的createLocalWindowManager（SystemServiceRegistry的机制，导致同一个Context.getSystemService得到的manager是相同的，通过createLocal可以新建一个自己的WM而不是Context共享的）方法传入this，新建WindowManagerImpl对象mWindowManager。这样就把WindowManagerImpl和PhoneWindow联系起来了。
             > WindowManagerImpl里面有一个mGlobal（WindowManagerImpl）单例，很多的操作都是通过mGlobal调用WMS完成的，相当与一个包装器模式，每个Window都有一个WindowManagerImpl，但是他们的mGlobal是相同的（同一个进程）。
@@ -157,3 +160,4 @@
     4. WindowManagerService新建WindowState前（WMS.addWindow）从DisplayContent获取对应ActivityRecord.Token（WindowManager.LayoutParams.token）的AppWindowToken，并传入。
 2. FLAG_ACTIVITY_NEW_TASK：用该标志启动的Activity 如果该Activity已经在某个Task里面了，则把她显示到前台不重新新建Task，除非加 FLAG_ACTIVITY_MULTIPLE_TASK 这个flag。
 3. android:taskAffinity：当开始一个没有Intent.FLAG_ACTIVITY_NEW_TASK标志的Activity时，任务共用性affinities不会影响将会运行该新活动的Task:它总是运行在启动它的Task里。但是，如果使用了NEW_TASK标志，那么共用性（affinity）将被用来判断是否已经存在一个有相同共用性（affinity）的Task。如果是这样，这项Task将被切换到前面而新的Activity会启动于这个Task的顶层。
+4. Launcher的启动![](../MdPicture/48.png)

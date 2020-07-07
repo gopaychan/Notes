@@ -6,4 +6,15 @@
 
 4. setView里面会调用enableHardwareAcceleration方法来判断是否打开硬件加速。
 
-4. setView -> requestLayout -> scheduleTraversals ->mTraversalRunnable.run() -> doTraversal -> performTraversals -> (view的measure layout draw)
+5. setView -> requestLayout -> scheduleTraversals ->mTraversalRunnable.run() -> doTraversal -> performTraversals -> (view的measure layout draw)
+    1. scheduleTraversals
+        1. 当当前没有Traversals Schedule的时候（！mTraversalScheduled）这个方法才会调用逻辑，并设置```mTraversalScheduled = true```
+        2. 调用```mHandler.getLooper().getQueue().postSyncBarrier()```在Handler对应Looper（主线程Looper）里面的MessageQueue设置[同步屏障](消息处理机制.md#sync)。
+        3. 调用Choreographer.postCallback方法实在Vsync信号到来的回调，回调最终会调用到doTraversal方法，这个方法会先移除同步屏障，在调用performTraversals，遍历View树进行Measure，Layout，Draw。
+
+6. ViewRootlmpl身负了很多职责，主要有以下几点:
+    1. View树的根并管理View树。
+    2. 触发View的测量、布局和绘制。
+    3. 输入事件的中转站。
+    4. 管理Surface。
+    5. 负责与WMS进行进程间通信。
