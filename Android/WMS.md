@@ -8,6 +8,12 @@
     3. WMS.mRoot(RootWindowContainer) > DisplayContent > AboveAppWindowContainers(<font color=#00CED1>Contains all non-app window containers that should be displayed above the app containers (e.g. Status bar)</font>) > WindowToken > WindowState
     4. WMS.mRoot(RootWindowContainer) > DisplayContent > NonMagnifiableWindowContainers > WindowToken
 4. WindowToken的构造方法会调用DisplayContent.reParentWindowToken -> DisplayContent.addWindowToken以ActivityRecord.Token为key把AppWindowToken保存在DisplayContent.mTokenMap里面。
+5. 每个DisplayContent保存着WindowState树，并可以调用他的assignWindowLayers方法来对这个WindowState树进行排序（zorder）。
+6. WMS的重要成员
+    1. mInputManager，InputManagerService的实例。用于管理每个窗口的输入事件通道（InputChannel）以及向上通道上的派发事件。
+    2. mAnimator，WindowAnimator的实例。他是所有窗口动画的总管（窗口动画是一个WindowStateAnimator对象）。在Choreographer的驱动下，逐个渲染所有的动画。
+        > 包括屏幕旋转动画ScreenRotationAnimation，WindowAnimator.scheduleAnimation方法会设置监听到Choreographer里面，当VSYNC到来的时会回调WindowAnimator.mAnimationFrameCallback，最后调用到他的animate方法，进行Window的各种动画的处理。
+7. ViewRootImpl作为控件系统到窗口系统的桥梁，采用了协商式的函数来绘制控件。在窗口显示之前，VIewRootImpl首先对整个控件树进行尺寸测量，得到一个理想尺寸，并将这个理想尺寸作为relayWindow的参数交给WMS进行布局。布局之后，ViewRootImpl会根据WMS的实际布局结果重写对控件树进行一次测量得到最终的尺寸。
 
 ##### 2. Window与WMS的联系
 1. 每个App进程都会和WMS建立一个IWindowSession会话，这个会话被App进程用于和WMS通信。而WMS会保存每个ViewRootImpl.W（IWindow），这是个Binder对象，用来从WMS向client端Window的IPC调用。
@@ -31,5 +37,8 @@
 
 ##### 深入理解Android卷三
 1. WindowState的构造方法里面有窗口排序的逻辑，窗口的显示次序由两个成员字段描述：主序mBaseLayer和自序mSubLayer。主序用于描述窗口及其子窗口在所有窗口中的显示位置。而子序则描述一个子窗口在其兄弟窗口中的显示位置。主序越大，则窗口及其子窗口的显示位置相对于其他窗口的位置越靠前；子序越大同理。
-
 2. WMS.relayoutWindow会[create](SurfaceFlinger.md#createsurface) Surface，Activity stop的时候会destroy Surface。
+    1. performSurfacePlacementLoop方法的开头会先回收僵尸窗口的Surface（在内存不足的时候遍历窗口树，找出僵尸窗口-窗口Session不在WMS.mSessions里面）
+3. ![](../MdPicture/58.png)
+4. 屏幕旋转动画是PhoneWindowManager里面监听了对应Sensor的变化，当接收到屏幕旋转的状态时会调用WMS的updateRotation方法，最后会调用到对应DisplayContent的updateRotationUnchecked方法处理，这个方法会调用WMS的scheduleAnimationLocked方法开始动画处理（开始动画前会调用WMS的startFreezingDisplayLocked方法冻结一下状态）。
+    > WMS.updateRotationUnchecked方法还会调用sendNewConfiguration，最后调用到AMS的updateDisplayOverrideConfiguration方法更新Configuration。

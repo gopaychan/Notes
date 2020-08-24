@@ -1,5 +1,6 @@
 ##### 1. 输入事件传递的大概流程
 1. ![](../MdPicture/39.png)
+4. ![](../MdPicture/59.png)
 2. ![](../MdPicture/40.png)
 3. ![](../MdPicture/42.png)
 4. InputManager类图![](../MdPicture/37.png)
@@ -18,12 +19,16 @@
     > SystemServer在start InputManagerService之前还调用其setWindowManagerCallbacks传入WMS的mInputMonitor
 2. InputDispatcher启动起来之后会不断调用他的成员函数dispatchOnce来检查InputReader是否给他分发了一个事件，如果没有会调用其成员变量的mLooper的成员函数[pollOnce](消息处理机制.md#looper)进入睡眠等待状态直到被InputReader唤醒。
 3. InputReader在启动的完成之后，会不断的调用他的成员函数loopOnce来监控系统是否有键盘事件发生（当线程运行时，会调用threadLoop函数，如果它返回true并且没有调用requestExit函数，就会接着循环调用threadLoop函数）。InputReader类的成员函数loopOnce实际上是通过调用成员变量mEventHub的成员函数getEvents来监控系统是否有键盘事件发生的。
+4. 监听input节点的新建删除是通过INotify（Linux内核提供的一种文件系统变化通知机制）
+    > inotify对象通过```int inotifyFd = inotify_init();```创建；通过```int wd = inotify_add_watch(inotifyFd, "/dev/input", IN_CREATE | IN_DELETE);```将一个用于监听输入设备节点的创建和删除的watch对象添加到inotify对象中。当/dev/input下的设备节点发生创建和删除操作时，会将相应的事件信息写入inotifyFd所描述的inotify对象中，通过read()函数从inotifyFd描述符中将事件信息读取出来。
 
 ##### 3. Key事件到来时的处理
 1. 当getEvents返回值count不为0的时候就会调用InputReader.processEventsLocked；getEvents是个阻塞方法，调用了epoll_wait，如果device.fd没有写入数据，或其他监听的fd（如mWakeReadPipeFd，用来wake的）没有写入数据，就会在这儿陷入阻塞睡眠。
     > 第一次调用getEvents的时候会因为mNeedToScanDevices=true，故会调用EventHub.scanDevicesLocked，扫描dev/input目录下的input device节点，open之后加入到mOpeningDevices链表里面，并且用epoll监听打开的fd，然后遍历mOpeningDevices链表把scan的数据以type=DEVICE_ADDED返回给InputReader event数据，InputReader判断接收到的event是Device_ADDED event之后会调用InputReader.addDeviceLocked新建对应的InputDevice对象，并保存在mDevices里面。
 2. 如果event type不是DEVICE_ADDED、DEVICE_REMOVED或FINISHED_DEVICE_SCAN则调用InputReader.processEventsForDeviceLocked方法。通过获得的deviceId获取对应InputDevice并调用其process方法。
 3. 循环调用InputDevice Mapper的process，一般会调用到的是KeyboardInputMapper.process -> KeyboardInputMapper.processKey
+    > 1. [参考键值映射关系](https://www.cnblogs.com/blogs-of-lxl/p/9490205.html) system/usr/keylayout/Generic.kl定义了ScanCode->KeyCodeLabel；frameworks/native/include/android/keycodes.h和/frameworks/native/include/input/InputEventLabels.h定义了KeyCodeLabel->KeyCode。
+    > 2. Mapper和Classes的对应关系：![](../MdPicture/60.png)
 4. 封装inputEvent事件之后调用InputDispatcher.notifyKey唤醒InputDispatcher分发input Event
     > notifyKey里面会调用mPolicy（NativeInputManager）的<font color=#00CED1>interceptKeyBeforeQueueing</font>方法，然后会调用到InputManagerService的interceptKeyBeforeQueueing，接着调用mWindowManagerCallbacks（InputMonitor）的interceptKeyBeforeQueueing方法，最后调到mService（WMS）.mPolicy（PhoneWindowManager）.interceptKeyBeforeQueueing返回1就是不拦截，返回其他就是拦截，在NativeInputManager.hanleInterceptActions里面对这个返回值做了处理，如果不拦截（```wmActions & WM_ACTION_PASS_TO_USER```），则```policyFlags |= POLICY_FLAG_PASS_TO_USER```
 5. 上面步骤的流程图![](../MdPicture/41.png)
@@ -57,4 +62,7 @@
     2. ![](../MdPicture/47.jpg)
     3. 责任链：NativePreImeInputStage -> ViewPreImeInputStage -> ImeInputStage -> EarlyPostImeInputStage -> NativePostImeInputStage -> ViewPostImeInputStage -> SyntheticInputStage
         > 从责任链的头开始调用，如果这个Stage不处理这个Input事件就放回FORWARD，把事件传给下一个节点，找到处理节点之后可以return FINISH_HANDLED或FINISH_NOT_HANDLED表示事件finish，不需要再在责任链上传递（责任链模式）。
+
+##### 5. 其他
+1. InputDispatcher::dispatchOnce每个循环只会处理一个事件，而且上一个事件没有处理完不会分配下一个事件。这就导致如果一个事件处理ANR了，就会导致后面的很多事件处理不及时。Home事件会对这种情况有特殊处理，如果按了Home键之后0.5（APP_SWITCH_TIMEOUT）秒没有反应，就会把事件队列（mInboundQueue）Home事件前面的事件清空，使得Home事件可以提前执行；还有一些事件如VOLUME、POWER键的事件可能需要系统快速相应，所以这些键的处理是在interceptKeyBeforeQueueing方法里面的，这个方法是在notifyKey方法里面调用的，处于InputReader的线程，也不会受到ANR的影响。
     

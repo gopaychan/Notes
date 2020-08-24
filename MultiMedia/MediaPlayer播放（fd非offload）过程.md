@@ -215,7 +215,7 @@
             5. 常见 FLAG
                 1. AUDIO_OUTPUT_FLAG_DIRECT：不进行软件混音直接交HAL进行处理； Indicates cases that need to bypass AudioFlinger
                 2. AUDIO_OUTPUT_FLAG_PRIMARY：软件解码、软件混音、采样率转换(SRC)基本都不能少；
-                3. AUDIO_OUTPUT_FLAG_FAST：不进行采样率转换(SRC)；
+                3. AUDIO_OUTPUT_FLAG_FAST（通常是OpenSL ES或AAudio的Android原生音频[参考](https://source.android.google.cn/devices/audio/latency/design)）：不进行采样率转换(SRC)；
                 4. AUDIO_OUTPUT_FLAG_DEEP_BUFFER：经处理后(混音加音效等)交HAL进行处理；
                 5. AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD：编码数据直接交HAL进行处理(往往需要有DSP进行硬解码)； Indicates the stream should be offloaded
                 6. AUDIO_OUTPUT_FLAG_NON_BLOCKING – Indicates the writes for this stream are nonblocking
