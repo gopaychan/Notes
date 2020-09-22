@@ -62,7 +62,7 @@
 6. mSource的start后，NuPlayer会通过AVNuFactory的createRenderer方法新建渲染器mRenderer（<font color=#00CED1>NuPlayer::Renderer</font>），新建ALooper对象mRendererLooper，并跟mRenderer（AHandler的派生类对象）绑定，然后进行mRenderer的各种设置（setPlaybackSettings，setVideoFrameRate）。
 7. onStart的最后会调用接着调用postScanSources，最终会调用instantiateDecoder（实例化mAudioDecoder，mVideoDecoder），调用AVNuFactory的createDecoder来新建一个NuPlayer::Decoder对象decoder（<font color=#00CED1>NuPlayer::DecoderBase</font>）
     1. 调用decoder的init方法registerHandler(this)
-    2. 调用decoder的configure方法配置解码器（见7）
+    2. 调用decoder的configure方法配置解码器（见8）
 8. configure方法实际上是调用了NuPlayerDecoder的onConfigure方法
     1. 通过AVUtils的createCustomComponentByName方法获取一个自定义的MediaCodec对象mCodec，默认返回NULL。
     2. 通过MediaCodec的CreateByType方法获取一个MediaCodec对象mCodec。

@@ -65,4 +65,9 @@
 
 ##### 5. 其他
 1. InputDispatcher::dispatchOnce每个循环只会处理一个事件，而且上一个事件没有处理完不会分配下一个事件。这就导致如果一个事件处理ANR了，就会导致后面的很多事件处理不及时。Home事件会对这种情况有特殊处理，如果按了Home键之后0.5（APP_SWITCH_TIMEOUT）秒没有反应，就会把事件队列（mInboundQueue）Home事件前面的事件清空，使得Home事件可以提前执行；还有一些事件如VOLUME、POWER键的事件可能需要系统快速相应，所以这些键的处理是在interceptKeyBeforeQueueing方法里面的，这个方法是在notifyKey方法里面调用的，处于InputReader的线程，也不会受到ANR的影响。
-    
+2. PWM的filterInputEvent，一旦IMS认为事件被一个INputFilter截获过，这个事件便被丢弃了（返回false）。如果IInputFilter的使用者不作为建辉导致输入事件无法响应。因此，IInputFilter的使用者截获事件之后，需要以软件的方式（injectInputEvent）将事件重新注入InputDispatcher。因此InputFilter机制为使用者提供了篡改输入事件的能力。
+3. 重复按键的产生4个条件：
+    1. repeatCount等于0，也就是此事件尚未进行重复模拟。
+    2. event->action等于Action_Down，也就是仅对Down事件进行重复模拟。
+    3. 事件拥有TRUSTED选项，即事件来源于InputReader，通过软件注入的事件不支持。
+    4. 事件没有DISABLE_KEY_REPEAT选项，以及DispatcherPolicy允许对此事件进行重复模拟。
