@@ -37,10 +37,7 @@
 9. 其他还有preExecute，postExecute方法，在execute前后做一些处理（比如pause最后会在PostExecute里面调用AMS的activityPaused方法通知Activity已经paused）。
 
 ##### 3. <span id="zygote">zygote fork App进程</span>
-1. [参考](http://gityuan.com/2016/03/26/app-process-create/)
-2. ![](../MdPicture/29.png)
-3. 开机的时候zygote在fork完system_server进程之后就进入runSelectLoop等待客户端的连接来fork APP进程。
-4. 客户端通(ZygoteProcess.start)过socket name zygote连接zygote，zygote进程会在runSelectLoop获得Socket请求，并里调用ZygoteConnection的processOneCommand方法。
+1. [参考](http://gityuan.com/2016/03/26/app-process-cmAudioVolumeGroup接zygote，zygote进程会在runSelectLoop获得Socket请求，并里调用ZygoteConnection的processOneCommand方法。
 5. 接着调用Zygote的forkAndSpecialize方法，其实是调用了native的fork方法fork一个新的进程。
 6. 当pid==0时（fork进程是对父进程的复制，所以子父进程都会执行forkAndSpecialize方法以后的方法，只是这个时候子进程返回的pid为0），调用ZygoteInit的zygoteInit方法，接着调用到RuntimeInit的applicationInit方法，反射执行ActivityThread的main方法。
     > fork()采用copy on write技术</br>
