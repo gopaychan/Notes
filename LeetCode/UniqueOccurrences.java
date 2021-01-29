@@ -3,7 +3,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import common.TestInterface;
 
 // 给你一个整数数组 arr，请你帮忙统计数组中每个数的出现次数。
 // 如果每个数的出现次数都是独一无二的，就返回 true；否则返回 false。
@@ -20,11 +19,7 @@ import common.TestInterface;
 // 输入：arr=[-3,0,1,-3,1,1,1,-3,10,0]
 // 输出：true
 
-public class UniqueOccurrences implements TestInterface {
-
-    @Override
-    public void test() {
-    }
+public class UniqueOccurrences {
 
     public boolean uniqueOccurrences(int[] arr) {
         Map<Integer, Integer> countMap = new HashMap<>();

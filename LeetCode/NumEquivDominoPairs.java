@@ -3,7 +3,6 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 
-import common.TestInterface;
 
 // 给你一个由一些多米诺骨牌组成的列表 dominoes。
 // 如果其中某一张多米诺骨牌可以通过旋转 0 度或 180 度得到另一张多米诺骨牌，我们就认为这两张牌是等价的。
@@ -17,12 +16,11 @@ import common.TestInterface;
 // 来源：力扣（LeetCode）
 // 链接：https://leetcode-cn.com/problems/number-of-equivalent-domino-pairs
 
-public class NumEquivDominoPairs implements TestInterface {
+public class NumEquivDominoPairs {
 
-    @Override
-    public void test() {
+    public static void main(String[] args) {
         int[][] dominoes = new int[][] { { 1, 2 }, { 1, 2 }, { 1, 1 }, { 1, 2 }, { 2, 2 } };
-        System.out.println(numEquivDominoPairs(dominoes));
+        System.out.println(new NumEquivDominoPairs().numEquivDominoPairs(dominoes));
     }
 
     public int numEquivDominoPairs(int[][] dominoes) {

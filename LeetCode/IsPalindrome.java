@@ -1,5 +1,4 @@
 import common.ListNode;
-import common.TestInterface;
 
 // 请判断一个链表是否为回文链表。
 // 示例 1:
@@ -11,8 +10,8 @@ import common.TestInterface;
 // 输出:true
 // 进阶：你能否用 O(n),时间复杂度和 O(1) 空间复杂度解决此题？
 
-public class IsPalindrome implements TestInterface{
-    public void test() {
+public class IsPalindrome {
+    public static void main(String[] args) {
         ListNode node0 = new ListNode(0);
         ListNode node1 = new ListNode(1);
         ListNode node2 = new ListNode(1);
@@ -20,11 +19,11 @@ public class IsPalindrome implements TestInterface{
         node0.next = node1;
         node1.next = node2;
         node2.next = node3;
-        boolean result = isPalindrome(node0);
+        boolean result = new IsPalindrome().isPalindrome(node0);
         System.out.println("result = " + result);
     }
 
-    public static boolean isPalindrome(ListNode head) {
+    public boolean isPalindrome(ListNode head) {
         if (head == null || head.next == null)
             return true;
         ListNode slow = head;

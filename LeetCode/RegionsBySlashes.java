@@ -1,4 +1,3 @@
-import common.TestInterface;
 import common.UnionFind;
 
 // 在由 1 x 1 方格组成的 N x N 网格 grid 中，每个 1 x 1 方块由 /、\ 或空格构成。这些字符会将方块划分为一些共边的区域。
@@ -17,12 +16,11 @@ import common.UnionFind;
 // 来源：力扣（LeetCode）
 // 链接：https://leetcode-cn.com/problems/regions-cut-by-slashes
 
-public class RegionsBySlashes implements TestInterface {
+public class RegionsBySlashes {
 
-    @Override
-    public void test() {
+    public static void main(String[] args) {
         String[] grid = new String[] { "/\\", "\\/" };
-        System.out.println(regionsBySlashes(grid));
+        System.out.println(new RegionsBySlashes().regionsBySlashes(grid));
     }
 
     public int regionsBySlashes(String[] grid) {

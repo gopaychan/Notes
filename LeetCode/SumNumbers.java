@@ -1,5 +1,4 @@
 import common.TreeNode;
-import common.TestInterface;
 
 // 给定一个二叉树，它的每个结点都存放一个 0-9 的数字，每条从根到叶子节点的路径都代表一个数字。
 // 例如，从根到叶子节点路径 1->2->3 代表数字 123。
@@ -16,10 +15,9 @@ import common.TestInterface;
 // 从根到叶子节点路径 1->3 代表数字 13.
 // 因此，数字总和 = 12 + 13 = 25.
 
-public class SumNumbers implements TestInterface {
+public class SumNumbers {
 
-    @Override
-    public void test() {
+    public static void main(String[] args) {
 
         TreeNode node9 = new TreeNode(9);
         // TreeNode node10 = new TreeNode(10);
@@ -32,7 +30,7 @@ public class SumNumbers implements TestInterface {
         TreeNode node2 = new TreeNode(2, node4, node5);
         TreeNode node1 = new TreeNode(1, node2, node3);
         // List<Integer> result = preorderTraversalv2(node1);
-        int result = sumNumbers(node1);
+        int result = new SumNumbers().sumNumbers(node1);
         System.out.println("result=" + result);
 
         // StringBuilder stringBuilder = new StringBuilder("[");

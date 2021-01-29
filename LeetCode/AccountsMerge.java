@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
 
-import common.TestInterface;
 import common.UnionFind;
 
 // 给定一个列表 accounts，每个元素 accounts[i] 是一个字符串列表，其中第一个元素 accounts[i][0] 是 名称(name)，其余元素是 emails 表示该账户的邮箱地址。
@@ -17,10 +16,9 @@ import common.UnionFind;
 // 输出：[["John",'john00@mail.com','john_newyork @mail.com', 'johnsmith @mail.com'],["John","johnnybravo@mail.com"],["Mary","mary@mail.com"]]
 // 解释：第一个和第三个 John 是同一个人，因为他们有共同的邮箱地址"johnsmith@mail.com"。第二个 John 和 Mary 是不同的人，因为他们的邮箱地址没有被其他帐户使用。可以以任何顺序返回这些列表，例如答案[['Mary'，'mary@mail.com']，['John'，'johnnybravo@mail.com']，['John'，'john00@mail.com'，'john_newyork@mail.com'，'johnsmith@mail.com']] 也是正确的。
 
-public class AccountsMerge implements TestInterface {
+public class AccountsMerge {
 
-    @Override
-    public void test() {
+    public static void main(String[] args) {
         List<List<String>> accounts = new ArrayList<>();
 
         List<String> account1 = new ArrayList<>();
@@ -45,7 +43,7 @@ public class AccountsMerge implements TestInterface {
         account4.add("mary@mail.com");// 4
         accounts.add(account4);
 
-        List<List<String>> result = accountsMerge(accounts);
+        List<List<String>> result = new AccountsMerge().accountsMerge(accounts);
         System.out.println(result);
     }
 

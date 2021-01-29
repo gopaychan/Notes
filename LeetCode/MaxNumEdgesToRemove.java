@@ -1,4 +1,3 @@
-import common.TestInterface;
 import common.UnionFind;
 
 // Alice 和 Bob 共有一个无向图，其中包含 n 个节点和 3  种类型的边：
@@ -16,12 +15,11 @@ import common.UnionFind;
 // 来源：力扣（LeetCode）
 // 链接：https://leetcode-cn.com/problems/remove-max-number-of-edges-to-keep-graph-fully-traversable
 
-public class MaxNumEdgesToRemove implements TestInterface {
+public class MaxNumEdgesToRemove {
 
-    @Override
-    public void test() {
+    public static void main(String[] args) {
         int[][] edges = new int[][] { { 1, 1, 2 }, { 2, 1, 2 }, { 3, 1, 2 } };
-        System.out.println(maxNumEdgesToRemove(2, edges));
+        System.out.println(new MaxNumEdgesToRemove().maxNumEdgesToRemove(2, edges));
     }
 
     public int maxNumEdgesToRemove(int n, int[][] edges) {
@@ -31,28 +29,20 @@ public class MaxNumEdgesToRemove implements TestInterface {
         for (int i = 0; i < edges.length; i++) {
             int[] edge = edges[i];
             if (edge[0] == 3) {
-                if (ufa.connected(edge[1] - 1, edge[2] - 1)) {
+                if (!ufa.union(edge[1] - 1, edge[2] - 1))
                     count += 1;
-                    continue;
-                }
-                ufa.union(edge[1] - 1, edge[2] - 1);
-                ufb.union(edge[1] - 1, edge[2] - 1);
+                else
+                    ufb.union(edge[1] - 1, edge[2] - 1);
             }
         }
         for (int i = 0; i < edges.length; i++) {
             int[] edge = edges[i];
             if (edge[0] == 1) {
-                if (ufa.connected(edge[1] - 1, edge[2] - 1)) {
+                if (!ufa.union(edge[1] - 1, edge[2] - 1))
                     count += 1;
-                    continue;
-                }
-                ufa.union(edge[1] - 1, edge[2] - 1);
-            } else if (edge[0] == 2){
-                if (ufb.connected(edge[1] - 1, edge[2] - 1)) {
+            } else if (edge[0] == 2) {
+                if (!ufb.union(edge[1] - 1, edge[2] - 1))
                     count += 1;
-                    continue;
-                }
-                ufb.union(edge[1] - 1, edge[2] - 1);
             }
         }
         if (ufa.getCount() > 1 || ufb.getCount() > 1)

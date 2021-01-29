@@ -35,9 +35,11 @@ public class UnionFind {
         if (mSz[rootI] >= mSz[rootJ]) {
             mParent[rootJ] = rootI;
             mSz[rootI] = mSz[rootI] + mSz[rootJ];
+            mSz[rootJ] = 0;
         } else {
             mParent[rootI] = rootJ;
             mSz[rootJ] = mSz[rootI] + mSz[rootJ];
+            mSz[rootI] = 0;
         }
         count -= 1;
         return true;
@@ -45,6 +47,10 @@ public class UnionFind {
 
     public int getCount() {
         return count;
+    }
+
+    public int getSameTopCount(int root) {
+        return mSz[root];
     }
 
     public void print() {
