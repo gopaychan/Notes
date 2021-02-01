@@ -1,4 +1,5 @@
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.ArrayList;
 import java.util.Queue;
 import java.util.LinkedList;
@@ -25,12 +26,99 @@ import common.Utils;
 public class SwimInWater {
 
     public static void main(String[] args) {
-        System.out.println(new SwimInWater().swimInWaterV2(new int[][] { { 0, 2 }, { 1, 3 } }));
-        System.out.println(new SwimInWater().swimInWaterV2(Utils
-                .stringToIntArray("   [[0         ,1,2,3,4  ],  [24,23,22    ,21,5],[12,13,  14,15,16],[11,17,18,19,20],[10,9,8,7,6]]")));
+        System.out.println(new SwimInWater().swimInWater(new int[][] { { 0, 2 }, { 1, 3 } }));
+        System.out.println(new SwimInWater().swimInWater(Utils.stringToIntArray(
+                "   [[0         ,1,2,3,4  ],  [24,23,22    ,21,5],[12,13,  14,15,16],[11,17,18,19,20],[10,9,8,7,6]]")));
     }
 
+    // SPFA算法（队列优化的Bellman-Ford），它的关键思想就在于：只有那些在前一遍松弛中改变了最短路估计值的结点，才可能引起它们邻接点最短路估计值发生改变。(可用于有负权边的图)
     public int swimInWater(int[][] grid) {
+        int[] dy = new int[] { 1, 0, -1, 0 };// 下，右，上，左
+        int[] dx = new int[] { 0, 1, 0, -1 };
+        int row = grid.length;
+        int col = grid[0].length;
+
+        Queue<Edge> queue = new LinkedList<>();
+        int dist[] = new int[row * col];
+        Arrays.fill(dist, Integer.MAX_VALUE);
+        queue.offer(new Edge(0, 0, grid[0][0]));
+        dist[0] = grid[0][0];
+        boolean inQueue[] = new boolean[row * col];
+        inQueue[0] = true;
+        while (!queue.isEmpty()) {
+            Edge edge = queue.peek();
+            int y = edge.x;
+            int x = edge.y;
+            int index = row * y + x;
+            for (int i = 0; i < dy.length; i++) {
+                int nx = x + dx[i];
+                int ny = y + dy[i];
+                if (nx >= 0 && nx < col && ny >= 0 && ny < row) {
+                    int nIndex = row * ny + nx;
+
+                    int min = Math.min(Math.max(dist[index], grid[ny][nx]), dist[nIndex]);
+                    if (min < dist[nIndex]) {
+                        dist[nIndex] = min;
+                        if (!inQueue[nIndex]) {
+                            Edge eage = new Edge(ny, nx, dist[nIndex]);
+                            queue.offer(eage);
+                            inQueue[nIndex] = true;
+                        }
+                    }
+                }
+            }
+            queue.poll();
+            inQueue[index] = false;
+        }
+        return dist[row * col - 1];
+    }
+
+    // Dijkstra 算法（应用前提：没有负权边，找单源最短路径）
+    public int swimInWaterV4(int[][] grid) {
+        int[] dy = new int[] { 1, 0, -1, 0 };// 下，右，上，左
+        int[] dx = new int[] { 0, 1, 0, -1 };
+        int row = grid.length;
+        int col = grid[0].length;
+
+        Queue<Edge> queue = new PriorityQueue<>(new Comparator<Edge>() {
+
+            @Override
+            public int compare(Edge o1, Edge o2) {
+                return o1.height - o2.height;
+            }
+        });
+        int dist[] = new int[row * col];
+        Arrays.fill(dist, Integer.MAX_VALUE);
+        queue.offer(new Edge(0, 0, grid[0][0]));
+        dist[0] = grid[0][0];
+        boolean seen[] = new boolean[row * col];
+        while (!queue.isEmpty()) {
+            Edge edge = queue.poll();
+            int y = edge.x;
+            int x = edge.y;
+            if (x == col - 1 && y == row - 1)
+                break;
+            int index = row * y + x;
+            seen[index] = true; 
+            for (int i = 0; i < dy.length; i++) {
+                int nx = x + dx[i];
+                int ny = y + dy[i];
+                if (nx >= 0 && nx < col && ny >= 0 && ny < row) {
+                    int nIndex = row * ny + nx;
+                    if (seen[nIndex])
+                        continue;
+                    
+                    dist[nIndex] = Math.min(Math.max(dist[index], grid[ny][nx]), dist[nIndex]);
+                    Edge eage = new Edge(ny, nx, dist[nIndex]);
+                    queue.offer(eage);
+                }
+            }
+        }
+        return dist[row * col - 1];
+    }
+
+    // bfs不适合这种场景（耗时较长），比较适合无权图。
+    public int swimInWaterV3(int[][] grid) {
         int[] dy = new int[] { 1, 0, -1, 0 };// 下，右，上，左
         int[] dx = new int[] { 0, 1, 0, -1 };
         int row = grid.length;
@@ -80,6 +168,7 @@ public class SwimInWater {
         List<Integer> path = new ArrayList<>();
     }
 
+    // 并查集
     public int swimInWaterV2(int[][] grid) {
         int row = grid.length;
         int col = grid[0].length;

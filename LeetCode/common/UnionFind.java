@@ -1,5 +1,7 @@
 package common;
 
+import java.util.Arrays;
+
 public class UnionFind {
     int[] mParent;
     int[] mSz;
@@ -9,9 +11,10 @@ public class UnionFind {
         mParent = new int[n];
         mSz = new int[n];
         count = n;
+        Arrays.fill(mSz, 1);
         for (int i = 0; i < n; i++) {
             mParent[i] = i;
-            mSz[i] = 1;
+            // mSz[i] = 1;
         }
     }
 
