@@ -25,29 +25,29 @@ import java.util.Comparator;
 
 public class MaxSlidingWindow {
     public static void main(String[] args) {
-        Utils.printIntegerArray(new MaxSlidingWindow().maxSlidingWindow(new int[] { 1, 3, -1, -3, 5, 3, 6, 7 }, 3));
+        Utils.printIntegerArray(new MaxSlidingWindow().maxSlidingWindow(new int[] { 4 , -2 }, 2));
     }
 
     public int[] maxSlidingWindow(int[] nums, int k) {
-        Queue<Integer> queue = new PriorityQueue<>(new Comparator<Integer>() {
+        Queue<int[]> queue = new PriorityQueue<>(new Comparator<int[]>() {
             @Override
-            public int compare(Integer arg0, Integer arg1) {
-                return arg1 - arg0;
+            public int compare(int[] arg0, int[] arg1) {
+                return arg0[0] != arg1[0] ? arg1[0] - arg0[0] : arg0[1] - arg1[1];
             }
         });
         for (int i = 0; i < k; i++) {
-            queue.offer(nums[i]);
+            queue.offer(new int[] { nums[i], i });
         }
-        System.out.println(queue);
 
         int[] result = new int[nums.length - k + 1];
         int index = 0;
+        result[index++] = queue.peek()[0];
         for (int i = 0; i < nums.length - k; i++) {
-            result[index++] = queue.peek();
-            queue.remove(nums[i]);
-            queue.offer(nums[i + k]);
+            queue.offer(new int[] { nums[i + k], i + k });
+            while (queue.peek()[1] <= i)
+                queue.poll();
+            result[index++] = queue.peek()[0];
         }
-        result[index] = queue.peek();
         return result;
     }
 }

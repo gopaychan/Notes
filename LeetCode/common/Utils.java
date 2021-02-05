@@ -15,6 +15,16 @@ public class Utils {
         System.out.println(stringBuilder.toString());
     }
 
+    public static void printBooleanArray(double[] array) {
+        StringBuilder stringBuilder = new StringBuilder("[");
+        for (double i : array) {
+            stringBuilder.append(i).append(",");
+        }
+        int start = stringBuilder.lastIndexOf(",");
+        stringBuilder.replace(start, start + 1, "]");
+        System.out.println(stringBuilder.toString());
+    }
+
     public static int[][] stringToIntArray(String string) {
         // System.out.println(string);
         string = string.replaceAll(" +", "");
