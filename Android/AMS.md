@@ -96,6 +96,7 @@
     7. BroadcastQueue.performReceiveLocked
     8. ApplicationThread.scheduleRegisteredReceiver
     9. ReceiverDispatcher.Args.Runnable
+3. 受 Android 8.0（API 级别 26）后台执行限制的影响，以 API 级别 26 或更高级别为目标的应用无法再在其清单中注册用于隐式广播的广播接收器。不过，有几种广播目前不受这些限制的约束。无论应用以哪个 API 级别为目标，都可以继续为以下广播注册监听器。
 
 ##### 6. ContentProvider
 1. ContentProvider有两套跨进程的获取数据的方案：
@@ -158,3 +159,7 @@
 2. FLAG_ACTIVITY_NEW_TASK：用该标志启动的Activity 如果该Activity已经在某个Task里面了，则把她显示到前台不重新新建Task，除非加 FLAG_ACTIVITY_MULTIPLE_TASK 这个flag。
 3. android:taskAffinity：当开始一个没有Intent.FLAG_ACTIVITY_NEW_TASK标志的Activity时，任务共用性affinities不会影响将会运行该新活动的Task:它总是运行在启动它的Task里。但是，如果使用了NEW_TASK标志，那么共用性（affinity）将被用来判断是否已经存在一个有相同共用性（affinity）的Task。如果是这样，这项Task将被切换到前面而新的Activity会启动于这个Task的顶层。
 4. Launcher的启动![](../MdPicture/48.png)
+5. Android8之后，静态注册广播接收器不能接收隐式广播（如：应用卸载广播 ACTION_PACKAGE_REMOVED），除非添加FLAG_RECEIVER_INCLUDE_BACKGROUND flag（如：开机广播 ACTION_BOOT_COMPLETED）
+6. force-stop里面回调用kill，force-stop比kill多了finishForceStopPackageLocked方法，这个方法会发送ACTION_PACKAGE_RESTARTED广播，接收广播的地方会做一些清理工作，如Alarm
+
+开机广播：stop应用是不能接收的 广播默认添加FLAG_EXCLUDE_STOPPED_PACKAGES这个flag，除非是系统应用
