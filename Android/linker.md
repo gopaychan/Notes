@@ -1,0 +1,8 @@
+##### 1. 命名空间
+1. 随着 Treble （将 Android 平台分为框架（Framework）和供应商（Vendor）部分，方便framework的单独升级）计划的引入，Framework跟Vendor两者间最好就不能有共享的本地库，Treble 引入了两套本地库——框架和供应商的。在某些情况下，这两个库中的库可能具有相同的名称，但是不同的实现。由于库的符号暴露给一个进程的所有代码，因此这两个集合需要被单独区分和链接，否则可能会出现混乱的调用。为了解决这些问题，Android 动态链接器引入了基于命名空间的动态链接（namespace based dynamic linking），它和 Java 类加载器 隔离资源的方法类似。通过这种设计，每个库都加载到一个特定的命名空间中，除非它们通过命名空间链接（namespace link）共享，否则不能访问其他命名空间中的库。（[参考](https://jackwish.net/2017/namespace-based-dynamic-linking-chn.html)）
+2. 每当接收到库加载请求时，动态链接器遍历库搜索路径（Library Search Path, LSPath）来搜索该库。对于使用常规动态链接 API 的库，例如dlopen()，动态链接器在调用者的 命名空间 中加载新的库。
+3. ApplicationLoader：在应用启动的时候，调用LoadedApk的getResources方法的时候会调用getClassLoader方法，最终调用到ClassLoaderFactory的createClassloaderNamespace方法创建应用的一个命名空间，NativeLoader会将这个命名空间连接到（default）命名空间，使得应用程序可以访问（default）命名空间中的统一组系统库。
+    - 应用第一次调用System.loadLibrary的时候，会调用到Runtime.java#nativeLoad -> Runtime.c#Runtime_nativeLoad -> OpenjdkJvm.cc#JVM_NativeLoad -> java_vm_ext.cc#LoadNativeLibrary -> native_loader.cpp#OpenNativeLibrary，里面会判断当前用到的classLoader是不是有namespace，如果没有就新建。故可以理解为应用的classLoader跟命名空间绑定在一起。ApplicationLoader是比较特殊的，应用主动调用CreateClassLoaderNamespace创建命名空间。
+4. public.libraries.txt：JNI_CreateJavaVM的时候会调用InitializeNativeLoader来初始化native_loader.cpp#g_namespaces，dlopen txt里面对应的so。（这个时候命名空间还没有create，已经打开过的so会保存ld_library_paths，就不存在应用打开时的权限问题）
+5. ld.config.txt：配置了一些命名空间的东西，如search.paths，permitted.paths,isolated等。由linker加载，在init的时候加载。跟public.libraries.txt的区别看上一个。
+    - search.paths和permitted.paths的区别：前一个只是在当前层目录下搜索，后一个是在当前层及其子目录搜索。

@@ -3,14 +3,14 @@
 4. ![](../MdPicture/59.png)
 2. ![](../MdPicture/40.png)
 3. ![](../MdPicture/42.png)
-4. InputManager类图![](../MdPicture/37.png)
+4. InputManager类图</br>![](../MdPicture/37.png)
     1. 由上图可知WindowManagerService里面有一个InputManagerService对象mInputManager，这是开机的时候由SystemServer创建WindowManagerService对象的时候传进来的。
     2. InputManagerService对象的构造方法会调用nativeInit方法初始化一个native层的InputManager NativeInputManager，传入其InputManagerHandler对象mHandler对应Looper里面的MessageQueue，最后将NativeInputManager对象地址保存在mPtr里面。
         1. 把上面传经来的java层的MessageQueue，获取其native层的MessageQueue并保存其对应的native Looper在mLooper里面。
         2. NativeInputManager的构造方法里会构造一个InputManager对象mInputManager。
     3.  InputManager（native）里面有两个成员变量mDispatcher和mReader，他们分别指向了一个InputDispatcher对象和一个InputReader对象，前者是用来分发键盘事件给系统当前激活的应用程序，后者用来监控系统的键盘事件，他们分别运行在一个独立的线程中。
         1. InputDispatch有两个成员变量mLooper和mFocusedWindowHandle，他们分别指向一个Looper对象和一个InputWindowHandle对象，前者用来和InputReader通信，后者用来描述系统当前激活的应用程序窗口。
-        2. 当一个应用程序窗口被激活时，WMS就会调用java层的InputManagerService的setInputWindows将他设置到InputDispatcher的mFocusedWindowHandle中以便InputDispatcher可以将时间分发给他处理。
+        2. 当一个应用程序窗口被激活时，WMS就会调用java层的InputManagerService的setInputWindows将他设置到InputDispatcher的mFocusedWindowHandle中以便InputDispatcher可以将事件分发给他处理。
             > WMS里面有一个InputMonitor对象mInputMonitor是用来专门处理Input事件和Focus管理的。上面说WMS调用InputManagerService的setInputWindows其实也是间接调用，是通过调用InputMonitor.updateInputWindowsLw->UpdateInputForAllWindowsConsumer.updateInputWindows->mService.mInputManager.setInputWindows。
         3. InputReader有一个成员变量mEventHub，他指向一个EventHub对象，这个EventHub对象是正在用来监控系统的键盘事件的。
 
@@ -28,10 +28,10 @@
 2. 如果event type不是DEVICE_ADDED、DEVICE_REMOVED或FINISHED_DEVICE_SCAN则调用InputReader.processEventsForDeviceLocked方法。通过获得的deviceId获取对应InputDevice并调用其process方法。
 3. 循环调用InputDevice Mapper的process，一般会调用到的是KeyboardInputMapper.process -> KeyboardInputMapper.processKey
     > 1. [参考键值映射关系](https://www.cnblogs.com/blogs-of-lxl/p/9490205.html) system/usr/keylayout/Generic.kl定义了ScanCode->KeyCodeLabel；frameworks/native/include/android/keycodes.h和/frameworks/native/include/input/InputEventLabels.h定义了KeyCodeLabel->KeyCode。
-    > 2. Mapper和Classes的对应关系：![](../MdPicture/60.png)
+    > 2. Mapper和Classes的对应关系：</br>![](../MdPicture/60.png)
 4. 封装inputEvent事件之后调用InputDispatcher.notifyKey唤醒InputDispatcher分发input Event
     > notifyKey里面会调用mPolicy（NativeInputManager）的<font color=#00CED1>interceptKeyBeforeQueueing</font>方法，然后会调用到InputManagerService的interceptKeyBeforeQueueing，接着调用mWindowManagerCallbacks（InputMonitor）的interceptKeyBeforeQueueing方法，最后调到mService（WMS）.mPolicy（PhoneWindowManager）.interceptKeyBeforeQueueing返回1就是不拦截，返回其他就是拦截，在NativeInputManager.hanleInterceptActions里面对这个返回值做了处理，如果不拦截（```wmActions & WM_ACTION_PASS_TO_USER```），则```policyFlags |= POLICY_FLAG_PASS_TO_USER```
-5. 上面步骤的流程图![](../MdPicture/41.png)
+5. 上面步骤的流程图</br>![](../MdPicture/41.png)
 6. notifyKey 里面如果AccessiBilityManagerService没有实现InputFliter的话，就把KeyEvent排队到mInboundQueue的尾部，唤醒InputDispatcherThread（如果需要的话）执行dispatchOnce方法，接着执行dispatchOnceInnerLocked方法，如果````mPendingEvent->policyFlags & POLICY_FLAG_PASS_TO_USER```则调用InputDispatcher.dispatchKeyLocked。
     1. 调用doInterceptKeyBeforeDispatchingLockedInterruptible最终回调到PhoneWindowManager.<font color=#00CED1>interceptKeyBeforeDispatching</font>，官方说法：“Give the policy a chance to intercept the key.”方法返回值代表的是delay，如果delay<0则skip这个keyevent，如果delay=0则继续分发，否则延时delay分发。
     2. 调用InputDispatcher.findFocusedWindowTargetsLocked找到InputTargets的Focusewindow。
@@ -51,8 +51,8 @@
     2. ViewRootImpl得到mInputChannel之后新建WindowInputEventReceiver把mInputChannel保存在里面并传入Looper.myLooper，可以获得对应的MessageQueue。接着会调用InputEventReceiver（WindowInputEventReceiver的父类）.consumeBatchedInputEvents -> NativeInputEventReceiver.consumeEvents，最后会调用到InputConsumer.consume -> <font color=#7FFFAA>mChannel->receiveMessage</font>。和3.6.6对应，一个是服务端的send，一个是客户端的receive，他们是一对socketFd。
         > 1. WindowInputEventReceicer的父类InputEventReceiver的构造方法会调用一个nativeInit把自己和inputChannel和mMessageQueue传进去，在jni层建立一个NativeInputEventReceiver对象并返回给java层保存在mReceiverPtr里面。nativeInit会调用NativeInputEventReceiver对象的initialize方法，里面实际上是```mMessageQueue->getLooper()->addFd(mInputConsumer.getChannel()->getFd(), 0, ALOOPER_EVENT_INPUT, this, NULL)```把fd保存到当前线程的Looper里面，监听fd的ALOOPER_EVENT_INPUT时间，如果监听到了就会回调LooperCallback.handleEvent方法，然后调用NativeInputEventReceiver.consumeEvents方法去receiver msg。
         > 2. android_view_InputEventReceiver调用InputConsumer.consume之后会回调Java层的dispatchInputEvent方法，把Event传递到Java层。</br>
-        > 3. onKeyDown堆栈![](../MdPicture/43.png)
-        > 4. Touch Move事件堆栈![](../MdPicture/45.png)
+        > 3. onKeyDown堆栈</br>![](../MdPicture/43.png)
+        > 4. Touch Move事件堆栈</br>![](../MdPicture/45.png)
     3. 总的来说：
         1. Service端的inputChannel是保存在InputDispatcher里面的mConnectionsByFd里面的，通过InputDispatcher.registerInputChannel注册进去。
         2. Client端的inputChannel保存在InputEventReceiver里面，保存在NativeInputEventReceiver对象里面。

@@ -44,3 +44,13 @@
 14. BWR核心数据图表
 ![](../MdPicture/24.jpg)
 15. BBinder是派生自RefBase类的，他在用户空间创建并运行在service进程中。service进程中的其他对象可以简单的通过智能指针来引用这些BBinder来控制他们的声明周期，Binder驱动中的Binder实体对象是运行在内核空间中的，没法通过智能指针...，故Binder驱动需要跟service进程约定一套规则来维护他们的引用计数。（BR_DECREFS,BR_RELEASE,BR_INCREFS,BR_ACQUIRE）
+16. BpBinder派生于RefBase，当BpBinder对象强弱引用增加减少的时侯都会回调对应的方法onFirstRef。进而调用IPCThreadState::incStrongHandle来更新服务端的引用记数。
+##### 二. 数据结构
+1. binder_proc:
+    1. refs_by_desc: 通过flat_binder_object传进来的handle，找到但前proc中对应desc（handle）的binder_ref，在binder_ref里面可以拿到binder_node
+    2. refs_by_node: 通过上面拿到的node，可以在target_proc里面找到其对应的binder_ref，其里面的binder_ref_data可以找到其对应的desc，用来替换flat_binder_object传进来的handle。（只知道node不知道desc的情况，比如有A，B，C三个进程，A传递了传递了一个C进程的handle给B）
+    3. nodes：用来通过flat_binder_object传进来的binder（对应binder_node的ptr, 且这颗红黑树是用这个ptr排序的）来查找对应的node（binder_node）
+    4. threads
+    > 上面是binder_proc的四棵红黑树
+2. binder_node:
+    1. refs：binder_ref列表，保存引用该node的ref

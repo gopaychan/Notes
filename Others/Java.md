@@ -71,8 +71,9 @@
         > 子线程在创建的时候会拷贝父类的inheritableThreadLocals。
 
 4. java虚拟机
-    1. 新生代用标记-复制，老年代用标记-重排
-        1. 年龄达到MaxTenuringThreshold或Survivor（标记-复制算法把空间分为三部分，一块打的Eden空间和两块较小的Survivor空间，内存分配的时候只用一块Eden和一块Survivor，另一块Survivor用来复制）空间中相同年龄所有对象大小的总和大于Survivor空间的一半，年龄大于或等于该年龄的对象就可以直接进入老年代。
+    1. [新生代用标记-复制，老年代用标记-重排](https://blog.csdn.net/kzadmxz/article/details/96574203)
+        1. 年龄达到MaxTenuringThreshold或Survivor（标记-复制算法把空间分为三部分，一块大的Eden空间和两块较小的Survivor空间，内存分配的时候只用一块Eden和一块Survivor，另一块Survivor用来复制）空间中相同年龄所有对象大小的总和大于Survivor空间的一半，年龄大于或等于该年龄的对象就可以直接进入老年代。
+        2. 堆大小=新生代+老年代（新生代占堆空间的1/3、老年代占堆空间2/3）
     2. class文件里面有各种表，格式都是定死的，这样可以方便解析，见深入理解Java虚拟机第六章。
     3. class的加载流程：加载-验证-准备-解析-初始化
         1. 在加载阶段，虚拟机需要完成以下事情：
@@ -114,5 +115,30 @@
     11. 对象的内存分配，Java对象的内存分配有两种情况，由Java堆是否规整来决定（Java堆是否规整由所采用的垃圾收集器是否带有压缩整理功能决定）：
         1. 指针碰撞(Bump the pointer)：如果Java堆中的内存是规整的，所有用过的内存都放在一边，空闲的内存放在另一边，中间放着一个指针作为分界点的指示器，分配内存也就是把指针向空闲空间那边移动一段与内存大小相等的距离
         2. 空闲列表(Free List)：如果Java堆中的内存不是规整的，已使用的内存和空闲的内存相互交错，就没有办法简单的进行指针碰撞了。虚拟机必须维护一张列表，记录哪些内存块是可用的，在分配的时候从列表中找到一块足够大的空间划分给对象实例，并更新列表上的记录
+5. 乐观锁与悲观锁
+        1. CAS算法（即compare and swap（比较与交换）涉及到三个操作数，需要读写的内存值 V,进行比较的值 A,拟写入的新值 B），不能解决ABA问题（栈），开销大（自旋CAS），只能保证一个共享变量的原子操作;version算法。
+        2. 两者使用场景不同。
+6. sleep，wait的区别
+    1. sleep不会释放锁，wait会。
+        - Thread.join方法就是在主线程里面调用了子线程lock的wait方法，使主线程block，当子线程执行完成之后会自动调用notify（如Android中，art/runtime/thread.cc的Thread::Destroy方法)
+            ```
+            // Thread.join() is implemented as an Object.wait() on the Thread.lock object. Signal anyone who is waiting.
+            ObjPtr<mirror::Object> lock = jni::DecodeArtFiel(WellKnownClasses::java_lang_Thread_lock)->GetObject(tlsPtr_.opeer);
+            // (This conditional is only needed for tests, where Thread.lock won't have been set.)
+            if (lock != nullptr) {
+                StackHandleScope<1> hs(self);
+                Handle<mirror::Object> h_obj(hs.NewHandle(lock));
+                ObjectLock<mirror::Object> locker(self, h_obj);
+                locker.NotifyAll();
+            }
+            ```
+7. 并发编程
+    1. 原子性问题，可见性问题（volatile），有序性
+        - volatile: 
+            1. 保证了不同线程对这个变量进行操作时的可见性，即一个线程修改了某个变量的值，这新值对其他线程来说是立即可见的。
+                1. 强制将修改的值立即写入主存；
+                2. 除了修改值的线程，其他的取值的线程缓存标记为无效
+                3. 缓存无效的的线程会等待缓存行对应的主存地址被更新之后，重新读取主存中的新值
+            2. 禁止进行指令重排序。
 
 3. 找机会阅读java编程思想，java虚拟机（阅读了第一遍，粗略的有个概念），Linux相关的东西

@@ -37,7 +37,10 @@
 9. 其他还有preExecute，postExecute方法，在execute前后做一些处理（比如pause最后会在PostExecute里面调用AMS的activityPaused方法通知Activity已经paused）。
 
 ##### 3. <span id="zygote">zygote fork App进程</span>
-1. [参考](http://gityuan.com/2016/03/26/app-process-cmAudioVolumeGroup接zygote，zygote进程会在runSelectLoop获得Socket请求，并里调用ZygoteConnection的processOneCommand方法。
+1. [参考](http://gityuan.com/2016/03/26/app-process-create/)
+2. ![](../MdPicture/29.png)
+3. 开机的时候zygote在fork完system_server进程之后就进入runSelectLoop等待客户端的连接来fork APP进程。
+4. 客户端通(ZygoteProcess.start)过socket name zygote连接zygote，zygote进程会在runSelectLoop获得Socket请求，并里调用ZygoteConnection的processOneCommand方法。
 5. 接着调用Zygote的forkAndSpecialize方法，其实是调用了native的fork方法fork一个新的进程。
 6. 当pid==0时（fork进程是对父进程的复制，所以子父进程都会执行forkAndSpecialize方法以后的方法，只是这个时候子进程返回的pid为0），调用ZygoteInit的zygoteInit方法，接着调用到RuntimeInit的applicationInit方法，反射执行ActivityThread的main方法。
     > fork()采用copy on write技术</br>
@@ -47,6 +50,7 @@
     > fork之后应用进程就自然得到了虚拟机还可以获得一个Binder线程池和一个消息循环，ProcessState初始化的时候就会open一个binder设备。
     1. ZygoteInit.nativeZygoteInit
         1. AppRuntime.onZygoteInit，初始化ProcessState 并start binder线程池
+        2. ![](../MdPicture/68.jpg)
 7. 在子进程里面执行ActivityThread的main方法之后就进入APP主进程后，接下来的事情就是ActivityThread里面的事情了。
 8. Process.start()方法是阻塞操作，等待直到进程创建完成并返回相应的新进程pid，才完成该方法。
 <!-- - 反射调用ActivityThread的main的时候为了防止调用栈太深，是throw了一个MethodAndArgsCaller错误出来，之后在ZygoteInit的main方法里面try了这个错误并调用其run方法才真正调用了ActivityThread的main。 -->
@@ -118,6 +122,7 @@
         1. ActivityThread.installProvider
     7. AMS.publishContentProviders
     8. 退出while循环 返回获取的ContentProviderHolder，IContentProvider在其provider保存。
+    > FileProvider：FileProvider的应用给其他应用一个uri的时候，要在intent的flags里面添加对应的权限mode，或者主动调用grantUriPermission同意应用的某些权限。第一种情况再ActivityManagerService里面会解析intent，如果有flag会赋予对应的权限，如在ActivityStarter里面的resolveActivity方法解析startActivity的request的最后会调用checkGrantUriPermissionFromIntent赋予打开应用对应权限，或ActivityTaskManagerService.finishActivity->collectGrants;最后调用grantUriPermissionUncheckedFromIntent保存。其他应用获取ContentProvider的时候最终会调用到checkAuthorityGrants 判断这个权限。
 6. 匿名共享内存分析：
     1. SQLiteCursor类关系图![](../MdPicture/30.png)
     2. ContentProviderNative(Binder的子类，ContentProvider.Transport的父类，Transport最后会调用ContentProvider里面的对应方法来完成逻辑)里面的onTransact方法把Service端返回的Cursor（数据库的话是SQLiteCursor，是一个支持CursorWindow的类）封装成CursorToBulkCursorAdaptor，并获取其中的BulkCursorDescriptor类，获取这个类的时候会调用：
@@ -160,6 +165,6 @@
 3. android:taskAffinity：当开始一个没有Intent.FLAG_ACTIVITY_NEW_TASK标志的Activity时，任务共用性affinities不会影响将会运行该新活动的Task:它总是运行在启动它的Task里。但是，如果使用了NEW_TASK标志，那么共用性（affinity）将被用来判断是否已经存在一个有相同共用性（affinity）的Task。如果是这样，这项Task将被切换到前面而新的Activity会启动于这个Task的顶层。
 4. Launcher的启动![](../MdPicture/48.png)
 5. Android8之后，静态注册广播接收器不能接收隐式广播（如：应用卸载广播 ACTION_PACKAGE_REMOVED），除非添加FLAG_RECEIVER_INCLUDE_BACKGROUND flag（如：开机广播 ACTION_BOOT_COMPLETED）
-6. force-stop里面回调用kill，force-stop比kill多了finishForceStopPackageLocked方法，这个方法会发送ACTION_PACKAGE_RESTARTED广播，接收广播的地方会做一些清理工作，如Alarm
+6. force-stop里面会调用kill，force-stop比kill多了finishForceStopPackageLocked方法，这个方法会发送ACTION_PACKAGE_RESTARTED广播，接收广播的地方会做一些清理工作，如Alarm
 
 开机广播：stop应用是不能接收的 广播默认添加FLAG_EXCLUDE_STOPPED_PACKAGES这个flag，除非是系统应用

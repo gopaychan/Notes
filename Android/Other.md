@@ -1,0 +1,6 @@
+##### 一. [UsbService](https://blog.csdn.net/u013928208/article/details/84586238)
+> 包括了UserManager，UsbDeviceManager，UsbHostManager，UsbPortManager，UsbAlsaManager，UsbSettingsManager，UsbPermissionManager
+1. UsbHostManager里面有一个名为“UsbService host thread”的线程，是在systemReady的时候启动的。里面调用了native方法monitorUsbHostBus，最终调用到usbhost.c里面，通过inotify机制监控/dev，/dev/bus，/dev/bus/usb等文件夹或文件夹里面文件的变化来获取usb设备add或remove的状态，最后回调到UsbHostManager的usbDeviceAdded和usbDeviceRemoved方法。ps：有线耳机的插拔监听就是通过这个。
+    1. 如果插入的是音频设备（有线耳机）或MIDI设备，就会调用UsbAlsaManager的usbDeviceAdded方法，接着调用selectAlsaDevice->UsbAlsaDevice.start->UsbAlsaDevice.updateWiredDeviceConnectionState,最后调用到AudioService的setWiredDeviceConnectionState方法。
+2. UsbPortManager：usb端口管理，其构造方法会获取Usb.cpp的一个Proxy，并调用其setCallback方法，在setCallback方法里面会新建一个线程调用work方法，循环监听uevent事件。如果监听到想要的uevent事件，就会回调给callback的notifyPortStatusChange，最后在UsbPortManager的updatePortsLocked方法里面处理usb设备的add or remove（handlePortAddedLocked，handlePortRemovedLocked）。
+3. UsbDeviceManager：USB设备事务处理，控制adb，mtp，ptp等usb模式的切换和相应的通知提醒（通过设置特定的属性值触发init的一些action操作，切换usb状态）。通过UsbUEventObserver监听USB配置的变化，通过registerReceiver ACTION_USB_PORT_CHANGED ACTION_BATTERY_CHANGED ACTION_USB_DEVICE_ATTACHED ACTION_USB_DEVICE_DETACHED，监听usb端口的变化和插拔的变化。
