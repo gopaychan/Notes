@@ -3,10 +3,7 @@
 1. ![](../MdPicture/38.png)
 2. WindowState用来代表WMS中的窗口，而InputWindowHandle用来代表输入系统中的窗口。
 3. WMS.mRoot里面的层级关系，最终所有的WindowState都保存在以mRoot为根的树里面。查找Focus也是遍历这棵树找到Focus的Window。
-    1. WMS.mRoot(RootWindowContainer) > DisplayContent > TaskStackContainers(<font color=#00CED1>Contains all window containers that are related to apps (Activities)</font>) > TaskStack > Task > AppWindowToken > WindowState
-    2. WMS.mRoot(RootWindowContainer) > DisplayContent > NonAppWindowContainers(<font color=#00CED1>Contains all non-app window containers that should be displayed below the app containers (e.g. Wallpaper).</font>) > WallpaperWindowToken > WindowState
-    3. WMS.mRoot(RootWindowContainer) > DisplayContent > AboveAppWindowContainers(<font color=#00CED1>Contains all non-app window containers that should be displayed above the app containers (e.g. Status bar)</font>) > WindowToken > WindowState
-    4. WMS.mRoot(RootWindowContainer) > DisplayContent > NonMagnifiableWindowContainers > WindowToken
+![](../MdPicture/71.png)
 4. WindowToken的构造方法会调用DisplayContent.reParentWindowToken -> DisplayContent.addWindowToken以ActivityRecord.Token为key把AppWindowToken保存在DisplayContent.mTokenMap里面。
 5. 每个DisplayContent保存着WindowState树，并可以调用他的assignWindowLayers方法来对这个WindowState树进行排序（zorder）。
 6. WMS的重要成员

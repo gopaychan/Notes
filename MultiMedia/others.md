@@ -1,2 +1,8 @@
 1. AudioTrack:
     1. 写入数据有3种：offload，sharedBuffer，write
+
+2. AudioFlinger中。播放流程是在getNextBuffer里面处理数据，即在该方法里面给传入的buffer附值; 而录音流程是在releaseBuffer里面。这是因为播放的时候AudioTrack为client，AudioFlinger为service； 录音流程则相反。
+
+3. 录屏的声音
+    1. 当打开录屏的时候就会打开对应的out in device
+    2. 如果这个时候有音频播放，即AudioFlinger.createTrack调用的话就会获取到secondOutput，有secondOutput就会新建PatchRecord和PatchTrack，并调用secondaryThread的addPatchTrack把PatchTrack add 到secondThread的ActiveTracks里面。primaryThread里面的Track在releaseBuffer的时候会调用interceptBuffer把buffer传给PatchRecord，继而传到PatchTrack里面，到secondThread里面播放。当然这个播放不是播放到speaker等放音器我们可以听到，而是放到录屏对应的device（audio_remote_submix）out, 继而传给这个device对应的in，使得录屏对应的RecordThread可以获取到音频。
