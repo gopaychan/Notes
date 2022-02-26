@@ -49,10 +49,13 @@
     > WindowState在构造方法里面新建了一个InputWindowHandle，在openInputChannel方法里面把inputChannel赋值给InputWindowHandle.inputChannel
     1. 服务端的inputChannel调用IMS.registerInputChannel传进inputChannel和inputWindowHandle，最后是调用到InputDispatcher.registerInputChannel把inputChannel，inputWindowHandle保存在一个Connection对象connection里面，并保存在InputDispatcher.mConnectionsByFd里面以inputChannel.getFd为key，connection为value（发送事件的时候会根据inputChannel.getFd获取到connection）。并调用```mLooper->addFd(fd, 0, ALOOPER_EVENT_INPUT, handleReceiveCallback, this);```（消息处理机制里面有讲过的addFd）
     2. ViewRootImpl得到mInputChannel之后新建WindowInputEventReceiver把mInputChannel保存在里面并传入Looper.myLooper，可以获得对应的MessageQueue。接着会调用InputEventReceiver（WindowInputEventReceiver的父类）.consumeBatchedInputEvents -> NativeInputEventReceiver.consumeEvents，最后会调用到InputConsumer.consume -> <font color=#7FFFAA>mChannel->receiveMessage</font>。和3.6.6对应，一个是服务端的send，一个是客户端的receive，他们是一对socketFd。
-        > 1. WindowInputEventReceicer的父类InputEventReceiver的构造方法会调用一个nativeInit把自己和inputChannel和mMessageQueue传进去，在jni层建立一个NativeInputEventReceiver对象并返回给java层保存在mReceiverPtr里面。nativeInit会调用NativeInputEventReceiver对象的initialize方法，里面实际上是```mMessageQueue->getLooper()->addFd(mInputConsumer.getChannel()->getFd(), 0, ALOOPER_EVENT_INPUT, this, NULL)```把fd保存到当前线程的Looper里面，监听fd的ALOOPER_EVENT_INPUT时间，如果监听到了就会回调LooperCallback.handleEvent方法，然后调用NativeInputEventReceiver.consumeEvents方法去receiver msg。
-        > 2. android_view_InputEventReceiver调用InputConsumer.consume之后会回调Java层的dispatchInputEvent方法，把Event传递到Java层。</br>
-        > 3. onKeyDown堆栈</br>![](../MdPicture/43.png)
-        > 4. Touch Move事件堆栈</br>![](../MdPicture/45.png)
+        1. WindowInputEventReceicer的父类InputEventReceiver的构造方法会调用一个nativeInit把自己和inputChannel和mMessageQueue传进去，在jni层建立一个NativeInputEventReceiver对象并返回给java层保存在mReceiverPtr里面。nativeInit会调用NativeInputEventReceiver对象的initialize方法，里面实际上是```mMessageQueue->getLooper()->addFd(mInputConsumer.getChannel()->getFd(), 0, ALOOPER_EVENT_INPUT, this, NULL)```把fd保存到当前线程的Looper里面，监听fd的ALOOPER_EVENT_INPUT时间，如果监听到了就会回调LooperCallback.handleEvent方法，然后调用NativeInputEventReceiver.consumeEvents方法去receiver msg。
+        2. android_view_InputEventReceiver调用InputConsumer.consume之后会回调Java层的dispatchInputEvent方法，把Event传递到Java层。</br>
+        3. onKeyDown堆栈</br>![](../MdPicture/43.png)
+            1. window focus的时候会调用InputMethodManager的startInput方法跟把自己mClient记录到InputMethodManagerService的mCurClient里面，接着通过IInputMethodSession方法最终调用了InputMethodService的createSession方法在window跟输入法之间建立InputChannel，key事件会先传递到输入法中处理，然后才会传到window，inputChannel就是用来传递keyevent的。</br>应用传递到输入法的堆栈：</br>
+            ![](../MdPicture/72.png)</br>输入法传递回来的堆栈：</br>![](../MdPicture/73.png)
+
+        4. Touch Move事件堆栈</br>![](../MdPicture/45.png)
     3. 总的来说：
         1. Service端的inputChannel是保存在InputDispatcher里面的mConnectionsByFd里面的，通过InputDispatcher.registerInputChannel注册进去。
         2. Client端的inputChannel保存在InputEventReceiver里面，保存在NativeInputEventReceiver对象里面。
@@ -65,9 +68,10 @@
 
 ##### 5. 其他
 1. InputDispatcher::dispatchOnce每个循环只会处理一个事件，而且上一个事件没有处理完不会分配下一个事件。这就导致如果一个事件处理ANR了，就会导致后面的很多事件处理不及时。Home事件会对这种情况有特殊处理，如果按了Home键之后0.5（APP_SWITCH_TIMEOUT）秒没有反应，就会把事件队列（mInboundQueue）Home事件前面的事件清空，使得Home事件可以提前执行；还有一些事件如VOLUME、POWER键的事件可能需要系统快速相应，所以这些键的处理是在interceptKeyBeforeQueueing方法里面的，这个方法是在notifyKey方法里面调用的，处于InputReader的线程，也不会受到ANR的影响。
-2. PWM的filterInputEvent，一旦IMS认为事件被一个INputFilter截获过，这个事件便被丢弃了（返回false）。如果IInputFilter的使用者不作为建辉导致输入事件无法响应。因此，IInputFilter的使用者截获事件之后，需要以软件的方式（injectInputEvent）将事件重新注入InputDispatcher。因此InputFilter机制为使用者提供了篡改输入事件的能力。
+2. PWM的filterInputEvent，一旦IMS认为事件被一个InputFilter截获过，这个事件便被丢弃了（返回false）。如果IInputFilter的使用者不作为建辉导致输入事件无法响应。因此，IInputFilter的使用者截获事件之后，需要以软件的方式（injectInputEvent）将事件重新注入InputDispatcher。因此InputFilter机制为使用者提供了篡改输入事件的能力。
 3. 重复按键的产生4个条件：
     1. repeatCount等于0，也就是此事件尚未进行重复模拟。
     2. event->action等于Action_Down，也就是仅对Down事件进行重复模拟。
     3. 事件拥有TRUSTED选项，即事件来源于InputReader，通过软件注入的事件不支持。
     4. 事件没有DISABLE_KEY_REPEAT选项，以及DispatcherPolicy允许对此事件进行重复模拟。
+4. 输入事件分发给应用之后会在mAnrTracker.insert事件的timeoutTime和分发到的window的token，在下次dispatchOnce之前会先取出mAnrTracker里面的数据，如果比当前时间晚则说明anr。timeoutTime是在IputWindowHandle里面获取的（在InputMonitor的populateInputWindowHandle里面填充，获取ActivityRecord里面的mInputDispatchingTimeoutNanos），应用可以定制。

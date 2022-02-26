@@ -14,7 +14,7 @@
 
 ##### 2. Window与WMS的联系
 1. 每个App进程都会和WMS建立一个IWindowSession会话，这个会话被App进程用于和WMS通信。而WMS会保存每个ViewRootImpl.W（IWindow），这是个Binder对象，用来从WMS向client端Window的IPC调用。
-2. WindowManagerImpl.addView最终调用到ViewRootImpl.setView，每一个Window都有与之联系的ViewRootView，不管是Activity还是Toast的Window。ViewRootImpl的setView会调用到Session（frameworks/base/service/core/java/com/android/server/wm目录下）的addToDisplay，最后调用到WMS的addWindow。客户端向WMS添加一个窗口的过程，其实就是WMS为其分配一块Surface的过程。
+2. WindowManagerImpl.addView最终调用到ViewRootImpl.setView，每一个Window都有与之联系的ViewRootImpl，不管是Activity还是Toast的Window。ViewRootImpl的setView会调用到Session（frameworks/base/service/core/java/com/android/server/wm目录下）的addToDisplay，最后调用到WMS的addWindow。客户端向WMS添加一个窗口的过程，其实就是WMS为其分配一块Surface的过程。
     > WMG.addView，主要是用来新建ViewRootImpl，并保存view（DecoderView），wparams和root（ViewRootImpl）到WMG对应的List里面，最后调用root.setView
     > ActivityThread.handleResumeActivity，Toast.handleShow都会调用addView。
 3. WMS.addWindow，里面会新建Window在Service的一个代表WindowState，保存这传进来的IWindowSession和IWindow。
