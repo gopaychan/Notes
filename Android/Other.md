@@ -18,3 +18,10 @@
 1. Android/data：除${userid}/Android/obb/${package}目录外，相同应用程序(相同包名)不同用户( ${userid} )的目录也是权限隔离的。但是${userid}/Android/obb/${package}是跨用户( ${userid} ) 共享的。
 
 2. AudioService的setMode，如果一个应用设置了MODE_IN_COMMUNICATION，其他应用无法把它设置回MODE_NORMAL，但可以设置成其他，详情见setModeInt方法。
+
+3. HIDL服务配置在（VintfObject.cpp文件里面由生命），可以看各个hidl服务用到的版本：
+    1. /system/etc/vintf/manifest.xml
+    2. /system/etc/vintf/manifest/*.xml if they exist
+    3. /product/etc/vintf/manifest.xml if it exists
+    4. /product/etc/vintf/manifest/*.xml if they exist
+    5. (deprecated) /system/manifest.xml
